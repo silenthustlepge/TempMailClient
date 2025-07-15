@@ -55,31 +55,14 @@ async (input) => {
 });
 
 
-const checkEmailsPrompt = ai.definePrompt({
-  name: 'checkEmailsPrompt',
-  input: {
-    schema: PeriodicallyCheckEmailsInputSchema,
-  },
-  output: {
-    schema: PeriodicallyCheckEmailsOutputSchema,
-  },
-  tools: [getUnreadCountTool],
-  prompt: `You are an AI assistant helping to check for new emails.
-  The user will provide an email address, and you need to determine the number of unread emails for that address.
-  Use the getUnreadCount tool to find the number of unread emails.
-  Make sure to return the unread count to the user.
-  Email Address: {{{emailAddress}}}
-  `,
-});
-
 const periodicallyCheckEmailsFlow = ai.defineFlow(
   {
     name: 'periodicallyCheckEmailsFlow',
     inputSchema: PeriodicallyCheckEmailsInputSchema,
     outputSchema: PeriodicallyCheckEmailsOutputSchema,
   },
-  async input => {
-    const {output} = await checkEmailsPrompt(input);
-    return output!;
+  async (input) => {
+    const unreadCount = await getUnreadCountTool(input);
+    return { unreadCount };
   }
 );
