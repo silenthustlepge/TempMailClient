@@ -40,12 +40,15 @@ export async function configureAndFetchEmail(
   return configureAndFetchEmailFlow(input);
 }
 
-const fetchEmailTool = ai.defineTool({
-  name: 'fetchNewTempEmail',
-  description: 'Fetches a new temporary email address from the TempMail API with the specified name length configuration.',
-  inputSchema: ConfigureAndFetchEmailInputSchema,
-  outputSchema: ConfigureAndFetchEmailOutputSchema,
-  async execute(input) {
+const fetchEmailTool = ai.defineTool(
+  {
+    name: 'fetchNewTempEmail',
+    description:
+      'Fetches a new temporary email address from the TempMail API with the specified name length configuration.',
+    inputSchema: ConfigureAndFetchEmailInputSchema,
+    outputSchema: ConfigureAndFetchEmailOutputSchema,
+  },
+  async input => {
     const apiUrl = 'https://api.internal.temp-mail.io/api/v3/email/new';
     try {
       const response = await fetch(apiUrl, {
@@ -72,8 +75,8 @@ const fetchEmailTool = ai.defineTool({
       console.error('Error fetching email:', error);
       throw new Error('Failed to fetch new temporary email address.');
     }
-  },
-});
+  }
+);
 
 const configureAndFetchEmailPrompt = ai.definePrompt({
   name: 'configureAndFetchEmailPrompt',
