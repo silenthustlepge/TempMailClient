@@ -18,8 +18,9 @@ import {
   Shuffle,
   Eye,
   CheckCircle,
+  Wand2,
 } from 'lucide-react';
-import { requestEmailAction, fetchEmailsAction } from '@/app/actions';
+import { requestEmailAction, fetchEmailsAction, fetchDomainsAction } from '@/app/actions';
 import type { GeneratedEmail, Email } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -51,6 +52,13 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export function TempMailClient() {
   const [generatedEmail, setGeneratedEmail] = useState<GeneratedEmail | null>(
@@ -64,24 +72,38 @@ export function TempMailClient() {
   const [isHistoryOpen, setHistoryOpen] = useState(false);
   const [isChangeOpen, setChangeOpen] = useState(false);
   const [customEmailName, setCustomEmailName] = useState('');
+  const [domains, setDomains] = useState<string[]>([]);
+  const [selectedDomain, setSelectedDomain] = useState<string>('');
 
   const [isGenerating, startGenerating] = useTransition();
   const [isRefreshing, startRefreshing] = useTransition();
 
   const { toast } = useToast();
+  
+  const handleFetchDomains = useCallback(async () => {
+    if (domains.length > 0) return;
+    const result = await fetchDomainsAction();
+    if (result.data) {
+      setDomains(result.data);
+      if (result.data.length > 0) {
+        setSelectedDomain(result.data[0]);
+      }
+    } else if(result.error) {
+        toast({ title: 'Could not fetch domains', description: result.error, variant: 'destructive' });
+    }
+  }, [domains.length, toast]);
 
-  const handleGenerateEmail = (isRandom = false, name?: string) => {
+  const handleGenerateEmail = (isRandom = false, name?: string, domain?: string) => {
     startGenerating(async () => {
       setError(null);
       if (!isRandom) {
         setGeneratedEmail(null);
       }
       setEmails([]);
-      const result = await requestEmailAction(name);
+      const result = await requestEmailAction(name, domain);
       if (result.error) {
         setError(result.error);
         if (isRandom) {
-          // if random generation fails, revert to previous email
           toast({
             title: 'Failed to generate new random email',
             variant: 'destructive',
@@ -146,6 +168,11 @@ export function TempMailClient() {
       description: generatedEmail.email,
     });
   };
+  
+  const handleRandomizeName = () => {
+    const randomName = Math.random().toString(36).substring(2, 12);
+    setCustomEmailName(randomName);
+  };
 
   useEffect(() => {
     if (generatedEmail) {
@@ -154,6 +181,13 @@ export function TempMailClient() {
       return () => clearInterval(intervalId);
     }
   }, [generatedEmail, handleRefreshEmails]);
+  
+  useEffect(() => {
+    if (isChangeOpen) {
+      handleFetchDomains();
+    }
+  }, [isChangeOpen, handleFetchDomains]);
+
 
   return (
     <div className="space-y-6">
@@ -429,21 +463,40 @@ export function TempMailClient() {
       <Dialog open={isChangeOpen} onOpenChange={setChangeOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Change Email Address</DialogTitle>
+            <DialogTitle>Create Custom Email</DialogTitle>
             <DialogDescription>
-              Create a new email address with a custom name.
+              Choose a custom name and domain for your new email address.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
+            <div className="flex items-center gap-2">
               <Input
                 id="name"
                 value={customEmailName}
                 onChange={e => setCustomEmailName(e.target.value)}
                 placeholder="your-custom-name"
-                className="col-span-4"
+                className="flex-grow"
               />
+              <Button variant="outline" size="icon" onClick={handleRandomizeName} aria-label="Randomize name">
+                <Wand2 className="h-4 w-4" />
+              </Button>
             </div>
+            <Select onValueChange={setSelectedDomain} value={selectedDomain} disabled={domains.length === 0}>
+                <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a domain" />
+                </SelectTrigger>
+                <SelectContent>
+                    {domains.length > 0 ? (
+                        domains.map(domain => (
+                            <SelectItem key={domain} value={domain}>
+                                @{domain}
+                            </SelectItem>
+                        ))
+                    ) : (
+                        <SelectItem value="loading" disabled>Loading domains...</SelectItem>
+                    )}
+                </SelectContent>
+            </Select>
           </div>
           <DialogFooter>
             <DialogClose asChild>
@@ -451,8 +504,8 @@ export function TempMailClient() {
             </DialogClose>
             <Button
               type="submit"
-              onClick={() => handleGenerateEmail(false, customEmailName)}
-              disabled={isGenerating || !customEmailName}
+              onClick={() => handleGenerateEmail(false, customEmailName, selectedDomain)}
+              disabled={isGenerating || !customEmailName || !selectedDomain}
             >
               {isGenerating ? <Loader2 className="animate-spin" /> : 'Create Email'}
             </Button>

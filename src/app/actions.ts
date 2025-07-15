@@ -13,18 +13,17 @@ interface ActionResponse<T> {
 }
 
 export async function requestEmailAction(
-  name?: string
+  name?: string,
+  domain?: string
 ): Promise<ActionResponse<GeneratedEmail>> {
   try {
     let result;
-    if (name) {
-      // Logic for creating an email with a specific name (and default domain)
+    if (name && domain) {
       result = await fetchEmailWithDomain({
         name,
-        domain: 'gmail.com', // or a default domain
+        domain,
       });
     } else {
-      // Logic for creating a random email
       result = await configureAndFetchEmail({
         minNameLength: 10,
         maxNameLength: 10,
@@ -32,9 +31,9 @@ export async function requestEmailAction(
     }
     revalidatePath('/');
     return { data: result };
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
-    return { error: 'Failed to generate email address. Please try again.' };
+    return { error: error.message || 'Failed to generate email address. Please try again.' };
   }
 }
 
@@ -83,5 +82,23 @@ export async function fetchEmailsAction(
   } catch (error) {
     console.error(error);
     return { error: 'Failed to fetch emails.' };
+  }
+}
+
+export async function fetchDomainsAction(): Promise<ActionResponse<string[]>> {
+  const apiUrl = `https://api.internal.temp-mail.io/api/v3/domains`;
+  try {
+    const response = await fetch(apiUrl, {
+      next: { revalidate: 3600 } // Cache for 1 hour
+    });
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    }
+    const data: { domains: {name: string}[] } = await response.json();
+    const domainNames = data.domains.map(d => d.name);
+    return { data: domainNames };
+  } catch (error) {
+    console.error(error);
+    return { error: 'Failed to fetch domains.' };
   }
 }
