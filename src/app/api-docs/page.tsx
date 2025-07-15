@@ -213,7 +213,7 @@ export default function ApiDocsPage() {
                     <span className="font-mono">GET /api/domains</span>
                     <Badge variant="secondary">GET</Badge>
                 </CardTitle>
-              </Header>
+              </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-muted-foreground">Returns a list of all supported domains for creating custom email addresses.</p>
                 
