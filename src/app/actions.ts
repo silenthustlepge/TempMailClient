@@ -1,9 +1,5 @@
 'use server';
 
-import {
-  configureAndFetchEmail,
-  fetchEmailWithDomain,
-} from '@/ai/flows/request-email-address';
 import type { GeneratedEmail, Email } from '@/types';
 import { revalidatePath } from 'next/cache';
 
@@ -16,21 +12,39 @@ export async function requestEmailAction(
   name?: string,
   domain?: string
 ): Promise<ActionResponse<GeneratedEmail>> {
+  const apiUrl = 'https://api.internal.temp-mail.io/api/v3/email/new';
   try {
-    let result;
+    const body: { [key: string]: any } = {};
     if (name && domain) {
-      result = await fetchEmailWithDomain({
-        name,
-        domain,
-      });
+      body.name = name;
+      body.domain = domain;
     } else {
-      result = await configureAndFetchEmail({
-        minNameLength: 10,
-        maxNameLength: 10,
-      });
+      body.min_name_length = 10;
+      body.max_name_length = 10;
     }
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || `HTTP error! Status: ${response.status}`);
+    }
+
+    const result = {
+      email: data.email,
+      token: data.token,
+    };
+    
     revalidatePath('/');
     return { data: result };
+
   } catch (error: any) {
     console.error(error);
     return { error: error.message || 'Failed to generate email address. Please try again.' };
