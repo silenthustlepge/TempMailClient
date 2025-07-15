@@ -11,7 +11,6 @@ import {
   ChevronDown,
   Trash2,
   Plus,
-  HelpCircle,
   MoreHorizontal,
   History,
   QrCode,
@@ -19,6 +18,7 @@ import {
   Eye,
   CheckCircle,
   Wand2,
+  BookUser,
 } from 'lucide-react';
 import { requestEmailAction, fetchEmailsAction, fetchDomainsAction } from '@/app/actions';
 import type { GeneratedEmail, Email } from '@/types';
@@ -29,7 +29,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -40,7 +39,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Dialog,
@@ -59,6 +57,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import Link from 'next/link';
 
 export function TempMailClient() {
   const [generatedEmail, setGeneratedEmail] = useState<GeneratedEmail | null>(
@@ -299,6 +298,11 @@ export function TempMailClient() {
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setQrCodeOpen(true)}>
                       <QrCode className="mr-2" /> QR code
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/api-docs">
+                        <BookUser className="mr-2" /> API Docs
+                      </Link>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
