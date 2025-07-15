@@ -1,4 +1,7 @@
-import { Code, Hash, Mail, Server, Inbox } from 'lucide-react';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Hash, Mail, Server, Inbox } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -21,7 +24,11 @@ function CodeBlock({ children }: { children: React.ReactNode }) {
 }
 
 export default function ApiDocsPage() {
-  const baseUrl = 'https://your-app-url.com'; // You can replace this with a dynamic value later
+  const [baseUrl, setBaseUrl] = useState('');
+
+  useEffect(() => {
+    setBaseUrl(window.location.origin);
+  }, []);
 
   const endpoints = [
     {
