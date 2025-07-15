@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
-import { Copy, RefreshCw, Loader2, Inbox, ServerCrash, Mail } from 'lucide-react';
+import { Copy, RefreshCw, Loader2, Inbox, ServerCrash, Mail, ChevronDown, Trash2, Plus, HelpCircle, MoreHorizontal, History, QrCode, Shuffle } from 'lucide-react';
 import { requestEmailAction, fetchEmailsAction } from '@/app/actions';
 import type { GeneratedEmail, Email } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -10,31 +11,65 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmailDialog } from '@/components/email-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 export function TempMailClient() {
   const [generatedEmail, setGeneratedEmail] = useState<GeneratedEmail | null>(null);
+  const [emailHistory, setEmailHistory] = useState<GeneratedEmail[]>([]);
   const [emails, setEmails] = useState<Email[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isQrCodeOpen, setQrCodeOpen] = useState(false);
 
   const [isGenerating, startGenerating] = useTransition();
   const [isRefreshing, startRefreshing] = useTransition();
 
   const { toast } = useToast();
 
-  const handleGenerateEmail = () => {
+  const handleGenerateEmail = (isRandom = false) => {
     startGenerating(async () => {
       setError(null);
-      setGeneratedEmail(null);
+      if(!isRandom) {
+        setGeneratedEmail(null);
+      }
       setEmails([]);
       const result = await requestEmailAction();
       if (result.error) {
         setError(result.error);
+        if (isRandom) { // if random generation fails, revert to previous email
+            toast({ title: "Failed to generate new random email", variant: 'destructive' });
+        }
       } else if (result.data) {
         setGeneratedEmail(result.data);
+        setEmailHistory(prev => [result.data!, ...prev.filter(e => e.email !== result.data!.email)]);
       }
     });
   };
+
+  const handleDeleteEmail = () => {
+    if (!generatedEmail) return;
+    setEmailHistory(prev => prev.filter(e => e.email !== generatedEmail.email));
+    setGeneratedEmail(null);
+    setEmails([]);
+    setError(null);
+    toast({
+        title: 'Email Deleted',
+        description: 'The email address has been removed.',
+    });
+  }
 
   const handleRefreshEmails = useCallback(() => {
     if (!generatedEmail || isRefreshing) return;
@@ -69,7 +104,7 @@ export function TempMailClient() {
 
   return (
     <div className="space-y-6">
-      {isGenerating && <EmailDisplaySkeleton />}
+      {isGenerating && !generatedEmail && <EmailDisplaySkeleton />}
 
       {!isGenerating && !generatedEmail && (
         <Card className="text-center">
@@ -78,7 +113,7 @@ export function TempMailClient() {
                 <CardDescription>Click the button below to generate a new disposable email address.</CardDescription>
             </CardHeader>
           <CardContent>
-            <Button onClick={handleGenerateEmail} disabled={isGenerating} size="lg">
+            <Button onClick={() => handleGenerateEmail()} disabled={isGenerating} size="lg">
                 <Mail className="mr-2 h-5 w-5" />
               Generate Email Address
             </Button>
@@ -88,20 +123,49 @@ export function TempMailClient() {
 
       {generatedEmail && (
         <Card>
-          <CardHeader>
-            <CardTitle>Your Temporary Email</CardTitle>
-            <CardDescription>Use this address to sign up for services. Inbox automatically refreshes.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-3 rounded-lg border bg-secondary/50">
-              <span className="font-mono text-lg break-all text-primary">{generatedEmail.email}</span>
-              <div className="flex gap-2">
-                <Button variant="outline" size="icon" onClick={handleCopyToClipboard} aria-label="Copy email address">
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon" onClick={handleRefreshEmails} disabled={isRefreshing} aria-label="Refresh inbox">
-                  {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                </Button>
+          <CardContent className="pt-6">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between p-2 rounded-lg border bg-secondary/50">
+                  <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="flex items-center gap-2">
+                              <ChevronDown className="h-4 w-4" />
+                              <span className="font-mono text-lg break-all text-primary">{generatedEmail.email}</span>
+                          </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-80">
+                          {emailHistory.length > 1 ? (
+                              emailHistory.map(e => (
+                                  <DropdownMenuItem key={e.email} onClick={() => setGeneratedEmail(e)}>
+                                      {e.email}
+                                  </DropdownMenuItem>
+                              ))
+                          ) : (
+                            <DropdownMenuItem disabled>No other emails in history</DropdownMenuItem>
+                          )}
+                      </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button variant="ghost" size="icon" onClick={handleCopyToClipboard} aria-label="Copy email address">
+                    <Copy className="h-5 w-5" />
+                  </Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                  <Button variant="ghost" size="sm" onClick={handleCopyToClipboard}><Copy className="mr-2"/> Copy</Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleGenerateEmail(true)} disabled={isGenerating}>
+                    {isGenerating ? <Loader2 className="mr-2 animate-spin"/> : <Shuffle className="mr-2"/>}
+                    Random
+                    </Button>
+                  <Button variant="ghost" size="sm"><Plus className="mr-2"/> Change</Button>
+                  <Button variant="ghost" size="sm" onClick={handleDeleteEmail}><Trash2 className="mr-2"/> Delete</Button>
+                  <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm"><MoreHorizontal className="mr-2"/> More</Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                          <DropdownMenuItem><History className="mr-2"/> Emails history</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setQrCodeOpen(true)}><QrCode className="mr-2"/> QR code</DropdownMenuItem>
+                      </DropdownMenuContent>
+                  </DropdownMenu>
               </div>
             </div>
           </CardContent>
@@ -119,8 +183,15 @@ export function TempMailClient() {
       {generatedEmail && (
         <Card>
           <CardHeader>
-            <CardTitle>Inbox ({emails.length})</CardTitle>
-            <CardDescription>Last checked: {new Date().toLocaleTimeString()}</CardDescription>
+            <div className="flex justify-between items-center">
+                <div>
+                    <CardTitle>Inbox ({emails.length})</CardTitle>
+                    <CardDescription>Last checked: {new Date().toLocaleTimeString()}</CardDescription>
+                </div>
+                <Button variant="outline" size="icon" onClick={handleRefreshEmails} disabled={isRefreshing} aria-label="Refresh inbox">
+                    {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {isRefreshing && emails.length === 0 ? (
@@ -153,6 +224,25 @@ export function TempMailClient() {
       )}
 
       <EmailDialog email={selectedEmail} onOpenChange={(open) => !open && setSelectedEmail(null)} />
+      {generatedEmail && (
+        <Dialog open={isQrCodeOpen} onOpenChange={setQrCodeOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Email QR Code</DialogTitle>
+                    <DialogDescription>
+                        Scan this QR code to easily share or use your temporary email address.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="flex justify-center items-center p-4">
+                    <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=mailto:${generatedEmail.email}`}
+                        alt="Email QR Code"
+                        className="rounded-lg"
+                    />
+                </div>
+            </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
@@ -160,18 +250,20 @@ export function TempMailClient() {
 function EmailDisplaySkeleton() {
     return (
         <Card>
-            <CardHeader>
-                <Skeleton className="h-8 w-3/4" />
-                <Skeleton className="h-4 w-full mt-2" />
-            </CardHeader>
-            <CardContent>
-                <div className="flex items-center justify-between gap-4 p-3 rounded-lg border bg-secondary/50">
-                    <Skeleton className="h-6 w-1/2" />
-                    <div className="flex gap-2">
-                        <Skeleton className="h-10 w-10" />
+            <CardContent className="pt-6">
+                 <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between p-2 rounded-lg border bg-secondary/50">
+                        <Skeleton className="h-8 w-3/4" />
                         <Skeleton className="h-10 w-10" />
                     </div>
-                </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                        <Skeleton className="h-8 w-20" />
+                        <Skeleton className="h-8 w-24" />
+                        <Skeleton className="h-8 w-24" />
+                        <Skeleton className="h-8 w-24" />
+                        <Skeleton className="h-8 w-20" />
+                    </div>
+                 </div>
             </CardContent>
         </Card>
     )
