@@ -23,6 +23,28 @@ function CodeBlock({ children }: { children: React.ReactNode }) {
 export default function ApiDocsPage() {
   const baseUrl = 'https://your-app-url.com'; // You can replace this with a dynamic value later
 
+  const endpoints = [
+    {
+      method: 'POST',
+      path: '/api/emails',
+      description: 'Generate a new temporary email address.',
+      link: '#generate-email',
+    },
+    {
+      method: 'GET',
+      path: '/api/emails/{email}/messages',
+      description: 'Fetch all emails for a specific address.',
+      link: '#fetch-messages',
+    },
+    {
+      method: 'GET',
+      path: '/api/domains',
+      description: 'Get a list of available domains.',
+      link: '#fetch-domains',
+    },
+  ];
+
+
   return (
     <div className="bg-background text-foreground min-h-screen">
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
@@ -48,6 +70,38 @@ export default function ApiDocsPage() {
 
           <Card>
             <CardHeader>
+                <CardTitle>API Endpoints</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Method</TableHead>
+                            <TableHead>Endpoint</TableHead>
+                            <TableHead>Description</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {endpoints.map((endpoint) => (
+                             <TableRow key={endpoint.path}>
+                                <TableCell>
+                                    <Badge variant={endpoint.method === 'GET' ? 'secondary' : 'default'}>{endpoint.method}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <a href={endpoint.link} className="font-mono text-sm hover:underline">
+                                        {endpoint.path}
+                                    </a>
+                                </TableCell>
+                                <TableCell>{endpoint.description}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Hash className="w-6 h-6" />
                 <span>Authentication</span>
@@ -61,13 +115,13 @@ export default function ApiDocsPage() {
           </Card>
 
           {/* Endpoint 1: Generate Email */}
-          <section id="generate-email" className="space-y-4">
+          <section id="generate-email" className="space-y-4 scroll-mt-20">
             <h2 className="text-2xl font-semibold flex items-center gap-3"><Mail className="w-6 h-6 text-primary"/>Generate Email Address</h2>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                    <span>POST /api/emails</span>
-                    <Badge variant="secondary">POST</Badge>
+                    <span className="font-mono">POST /api/emails</span>
+                    <Badge variant="default">POST</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -112,12 +166,12 @@ export default function ApiDocsPage() {
           </section>
 
           {/* Endpoint 2: Fetch Messages */}
-          <section id="fetch-messages" className="space-y-4">
+          <section id="fetch-messages" className="space-y-4 scroll-mt-20">
             <h2 className="text-2xl font-semibold flex items-center gap-3"><Inbox className="w-6 h-6 text-primary"/>Fetch Messages</h2>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                    <span>GET /api/emails/{'{emailAddress}'}/messages</span>
+                    <span className="font-mono">GET /api/emails/{'{emailAddress}'}/messages</span>
                     <Badge variant="secondary">GET</Badge>
                 </CardTitle>
               </CardHeader>
@@ -151,15 +205,15 @@ export default function ApiDocsPage() {
           </section>
           
           {/* Endpoint 3: Fetch Domains */}
-          <section id="fetch-domains" className="space-y-4">
+          <section id="fetch-domains" className="space-y-4 scroll-mt-20">
             <h2 className="text-2xl font-semibold flex items-center gap-3"><Server className="w-6 h-6 text-primary"/>Fetch Available Domains</h2>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                    <span>GET /api/domains</span>
+                    <span className="font-mono">GET /api/domains</span>
                     <Badge variant="secondary">GET</Badge>
                 </CardTitle>
-              </CardHeader>
+              </Header>
               <CardContent className="space-y-4">
                 <p className="text-muted-foreground">Returns a list of all supported domains for creating custom email addresses.</p>
                 
